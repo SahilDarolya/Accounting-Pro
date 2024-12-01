@@ -6,6 +6,10 @@ services:
     startCommand: gunicorn wsgi:application
     envVars:
       - key: PYTHON_VERSION
-        value: 3.9.0
+        value: 3.11.0
       - key: FLASK_ENV
         value: production
+      - key: RENDER
+        value: true
+      - key: PORT
+        value: 8000
