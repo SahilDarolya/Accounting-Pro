@@ -1,0 +1,137 @@
+{% extends "base.html" %}
+
+{% block title %}Reports - Accounting System{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2 class="mb-4">Reports</h2>
+
+    <div class="row">
+        <!-- Sales Report -->
+        <div class="col-md-4 mb-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Sales Report</h5>
+                    <p class="card-text">Export detailed sales report with party-wise analysis.</p>
+                    <form action="{{ url_for('reports.export_sales') }}" method="get">
+                        <div class="mb-3">
+                            <label for="sales_start_date" class="form-label">Start Date</label>
+                            <input type="date" class="form-control" id="sales_start_date" name="start_date">
+                        </div>
+                        <div class="mb-3">
+                            <label for="sales_end_date" class="form-label">End Date</label>
+                            <input type="date" class="form-control" id="sales_end_date" name="end_date">
+                        </div>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-download"></i> Export Sales Report
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Inventory Report -->
+        <div class="col-md-4 mb-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Inventory Report</h5>
+                    <p class="card-text">Export current inventory status with stock levels.</p>
+                    <a href="{{ url_for('reports.export_inventory') }}" class="btn btn-primary">
+                        <i class="fas fa-download"></i> Export Inventory Report
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Ledger Report -->
+        <div class="col-md-4 mb-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Ledger Report</h5>
+                    <p class="card-text">Export party-wise ledger entries with balances.</p>
+                    <form action="{{ url_for('reports.export_ledger') }}" method="get">
+                        <div class="mb-3">
+                            <label for="party_id" class="form-label">Select Party</label>
+                            <select class="form-select" id="party_id" name="party_id">
+                                <option value="">All Parties</option>
+                                {% for party in parties %}
+                                <option value="{{ party.id }}">{{ party.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="ledger_start_date" class="form-label">Start Date</label>
+                            <input type="date" class="form-control" id="ledger_start_date" name="start_date">
+                        </div>
+                        <div class="mb-3">
+                            <label for="ledger_end_date" class="form-label">End Date</label>
+                            <input type="date" class="form-control" id="ledger_end_date" name="end_date">
+                        </div>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-download"></i> Export Ledger Report
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Additional Reports Section -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Custom Reports</h5>
+                    <p class="card-text">Generate custom reports based on specific criteria.</p>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Report Type</label>
+                                <select class="form-select" id="custom_report_type">
+                                    <option value="party_summary">Party Summary</option>
+                                    <option value="item_movement">Item Movement</option>
+                                    <option value="profit_loss">Profit & Loss</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Date Range</label>
+                                <select class="form-select" id="custom_date_range">
+                                    <option value="today">Today</option>
+                                    <option value="this_week">This Week</option>
+                                    <option value="this_month">This Month</option>
+                                    <option value="this_year">This Year</option>
+                                    <option value="custom">Custom Range</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <button type="button" class="btn btn-primary" id="generate_custom_report">
+                        <i class="fas fa-cog"></i> Generate Custom Report
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+$(document).ready(function() {
+    // Initialize date inputs with current date
+    const today = new Date().toISOString().split('T')[0];
+    $('input[type="date"]').val(today);
+
+    // Custom report generation
+    $('#generate_custom_report').click(function() {
+        const reportType = $('#custom_report_type').val();
+        const dateRange = $('#custom_date_range').val();
+        
+        // Add your custom report generation logic here
+        alert('Custom report generation will be implemented soon!');
+    });
+});
+</script>
+{% endblock %}

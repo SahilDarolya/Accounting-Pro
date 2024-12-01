@@ -1,0 +1,374 @@
+{% extends "base.html" %}
+
+{% block title %}Inventory Analytics - Accounting System{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/inventory.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Inventory Overview Cards -->
+    <div class="row g-4 mb-4">
+        <div class="col-xl-3 col-md-6">
+            <div class="card border-left-primary shadow h-100">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                Total Stock Value</div>
+                            <div class="h5 mb-0 font-weight-bold">₹{{ "%.2f"|format(total_stock_value) }}</div>
+                            <div class="text-sm text-muted mt-2">
+                                Across {{ total_items }} items
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="bx bx-store fs-2 text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6">
+            <div class="card border-left-danger shadow h-100">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col">
+                            <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">
+                                Low Stock Items</div>
+                            <div class="h5 mb-0 font-weight-bold">{{ low_stock_count }}</div>
+                            <div class="text-sm text-muted mt-2">
+                                Need reordering
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="bx bx-error-circle fs-2 text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6">
+            <div class="card border-left-success shadow h-100">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                Monthly Turnover</div>
+                            <div class="h5 mb-0 font-weight-bold">{{ turnover_ratio }}x</div>
+                            <div class="text-sm text-muted mt-2">
+                                Last 30 days
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="bx bx-refresh fs-2 text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6">
+            <div class="card border-left-warning shadow h-100">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col">
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                Dead Stock Value</div>
+                            <div class="h5 mb-0 font-weight-bold">₹{{ "%.2f"|format(dead_stock_value) }}</div>
+                            <div class="text-sm text-muted mt-2">
+                                No movement in 90 days
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="bx bx-time fs-2 text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stock Movement and Category Distribution -->
+    <div class="row mb-4">
+        <div class="col-xl-8">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                    <h6 class="m-0 font-weight-bold text-primary">Stock Movement Analysis</h6>
+                    <div class="btn-group">
+                        <button class="btn btn-sm btn-outline-secondary active" onclick="updateStockChart('quantity')">Quantity</button>
+                        <button class="btn btn-sm btn-outline-secondary" onclick="updateStockChart('value')">Value</button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <canvas id="stockMovementChart" height="300"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-4">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Category Distribution</h6>
+                </div>
+                <div class="card-body">
+                    <canvas id="categoryChart" height="300"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ABC Analysis and Inventory Alerts -->
+    <div class="row">
+        <div class="col-xl-8">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">ABC Analysis</h6>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover" id="abcTable">
+                            <thead>
+                                <tr>
+                                    <th>Item</th>
+                                    <th>Category</th>
+                                    <th>Annual Usage Value</th>
+                                    <th>% of Total Value</th>
+                                    <th>Classification</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in abc_analysis %}
+                                <tr>
+                                    <td>{{ item.name }}</td>
+                                    <td>{{ item.category }}</td>
+                                    <td>₹{{ "%.2f"|format(item.annual_value) }}</td>
+                                    <td>{{ "%.1f"|format(item.value_percentage) }}%</td>
+                                    <td>
+                                        <span class="badge bg-{{ 'primary' if item.classification == 'A' 
+                                            else 'success' if item.classification == 'B'
+                                            else 'warning' }}">
+                                            {{ item.classification }}
+                                        </span>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-4">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                    <h6 class="m-0 font-weight-bold text-primary">Inventory Alerts</h6>
+                    <span class="badge bg-danger">{{ inventory_alerts|length }}</span>
+                </div>
+                <div class="card-body">
+                    <div class="alert-list">
+                        {% for alert in inventory_alerts %}
+                        <div class="alert alert-{{ alert.type }} alert-dismissible fade show" role="alert">
+                            <div class="d-flex">
+                                <div class="alert-icon me-3">
+                                    <i class="bx {{ alert.icon }}"></i>
+                                </div>
+                                <div>
+                                    <h6 class="alert-heading">{{ alert.title }}</h6>
+                                    <p class="mb-0">{{ alert.message }}</p>
+                                    {% if alert.action_url %}
+                                    <a href="{{ alert.action_url }}" class="alert-link">Take Action</a>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Inventory Actions</h6>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <a href="{{ url_for('inventory.add_item') }}" class="btn btn-primary">
+                            <i class="bx bx-plus-circle"></i> Add New Item
+                        </a>
+                        <a href="{{ url_for('inventory.stock_adjustment') }}" class="btn btn-info">
+                            <i class="bx bx-transfer"></i> Stock Adjustment
+                        </a>
+                        <button class="btn btn-success" onclick="exportInventoryReport()">
+                            <i class="bx bx-download"></i> Export Report
+                        </button>
+                        <button class="btn btn-warning" onclick="generatePurchaseOrders()">
+                            <i class="bx bx-cart"></i> Generate Purchase Orders
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Stock Movement Chart
+    const stockCtx = document.getElementById('stockMovementChart').getContext('2d');
+    const stockChart = new Chart(stockCtx, {
+        type: 'line',
+        data: {
+            labels: {{ movement_dates|tojson }},
+            datasets: [{
+                label: 'Inward',
+                data: {{ inward_data|tojson }},
+                borderColor: 'rgba(78, 115, 223, 1)',
+                backgroundColor: 'rgba(78, 115, 223, 0.1)',
+                fill: true
+            }, {
+                label: 'Outward',
+                data: {{ outward_data|tojson }},
+                borderColor: 'rgba(231, 74, 59, 1)',
+                backgroundColor: 'rgba(231, 74, 59, 0.1)',
+                fill: true
+            }]
+        },
+        options: {
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: true
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    grid: {
+                        drawBorder: false
+                    }
+                },
+                x: {
+                    grid: {
+                        display: false
+                    }
+                }
+            }
+        }
+    });
+
+    // Category Distribution Chart
+    const categoryCtx = document.getElementById('categoryChart').getContext('2d');
+    const categoryChart = new Chart(categoryCtx, {
+        type: 'doughnut',
+        data: {
+            labels: {{ category_labels|tojson }},
+            datasets: [{
+                data: {{ category_data|tojson }},
+                backgroundColor: [
+                    'rgba(78, 115, 223, 0.8)',
+                    'rgba(28, 200, 138, 0.8)',
+                    'rgba(54, 185, 204, 0.8)',
+                    'rgba(246, 194, 62, 0.8)',
+                    'rgba(231, 74, 59, 0.8)'
+                ]
+            }]
+        },
+        options: {
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                }
+            },
+            cutout: '70%'
+        }
+    });
+
+    // Initialize DataTable for ABC Analysis
+    $('#abcTable').DataTable({
+        pageLength: 10,
+        order: [[3, 'desc']]
+    });
+
+    // Update Stock Movement Chart
+    window.updateStockChart = async function(metric) {
+        try {
+            const response = await fetch(`/api/stock-movement/${metric}`);
+            const data = await response.json();
+            
+            stockChart.data.datasets[0].data = data.inward;
+            stockChart.data.datasets[1].data = data.outward;
+            stockChart.update();
+            
+            // Update active button
+            document.querySelectorAll('.btn-group .btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+        } catch (error) {
+            console.error('Error updating stock chart:', error);
+            showToast('Error updating chart data', 'danger');
+        }
+    };
+
+    // Export Inventory Report
+    window.exportInventoryReport = async function() {
+        try {
+            const response = await fetch('/api/export-inventory', {
+                method: 'POST'
+            });
+            
+            if (response.ok) {
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'inventory_report.xlsx';
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                showToast('Report exported successfully', 'success');
+            } else {
+                throw new Error('Export failed');
+            }
+        } catch (error) {
+            console.error('Error exporting report:', error);
+            showToast('Error exporting report', 'danger');
+        }
+    };
+
+    // Generate Purchase Orders
+    window.generatePurchaseOrders = async function() {
+        if (!await confirmDialog('Generate purchase orders for all low stock items?')) {
+            return;
+        }
+        
+        try {
+            const response = await fetch('/api/generate-purchase-orders', {
+                method: 'POST'
+            });
+            
+            if (response.ok) {
+                const result = await response.json();
+                showToast(`Generated ${result.count} purchase orders`, 'success');
+                setTimeout(() => location.reload(), 1500);
+            } else {
+                throw new Error('Generation failed');
+            }
+        } catch (error) {
+            console.error('Error generating purchase orders:', error);
+            showToast('Error generating purchase orders', 'danger');
+        }
+    };
+});
+</script>
+{% endblock %}

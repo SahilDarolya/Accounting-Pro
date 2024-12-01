@@ -1,0 +1,168 @@
+{% extends "base.html" %}
+
+{% block title %}Ledger - Accounting System{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <h1 class="h2 mb-4">Ledger</h1>
+
+    <div class="row">
+        <div class="col-md-3">
+            <!-- Party Selection -->
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Select Party</h6>
+                </div>
+                <div class="card-body">
+                    <select class="form-select" id="partySelect">
+                        <option value="">Select a party</option>
+                        {% for party in parties %}
+                        <option value="{{ party.id }}">{{ party.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <!-- Date Range Selection -->
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Date Range</h6>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label for="startDate" class="form-label">Start Date</label>
+                        <input type="date" class="form-control" id="startDate">
+                    </div>
+                    <div class="mb-3">
+                        <label for="endDate" class="form-label">End Date</label>
+                        <input type="date" class="form-control" id="endDate">
+                    </div>
+                    <button class="btn btn-primary w-100" id="applyFilter">Apply Filter</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-9">
+            <!-- Summary Card -->
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Balance Summary</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="small font-weight-bold">Cash Balance</div>
+                            <div class="h4 mb-0 font-weight-bold text-gray-800" id="cashBalance">₹0.00</div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="small font-weight-bold">Bill Balance</div>
+                            <div class="h4 mb-0 font-weight-bold text-gray-800" id="billBalance">₹0.00</div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="small font-weight-bold">Total Balance</div>
+                            <div class="h4 mb-0 font-weight-bold text-gray-800" id="totalBalance">₹0.00</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Ledger Entries Table -->
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Ledger Entries</h6>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-bordered" id="ledgerTable">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Description</th>
+                                    <th>Cash Debit</th>
+                                    <th>Cash Credit</th>
+                                    <th>Bill Debit</th>
+                                    <th>Bill Credit</th>
+                                    <th>Cash Balance</th>
+                                    <th>Bill Balance</th>
+                                    <th>Total Balance</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Entries will be populated via JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const partySelect = document.getElementById('partySelect');
+    const startDate = document.getElementById('startDate');
+    const endDate = document.getElementById('endDate');
+    const applyFilter = document.getElementById('applyFilter');
+    const ledgerTable = document.getElementById('ledgerTable').getElementsByTagName('tbody')[0];
+
+    async function fetchLedgerSummary(partyId) {
+        try {
+            const response = await fetch(`/api/ledger/summary?party_id=${partyId}`);
+            const data = await response.json();
+            
+            document.getElementById('cashBalance').textContent = `₹${data.cash_balance.toFixed(2)}`;
+            document.getElementById('billBalance').textContent = `₹${data.bill_balance.toFixed(2)}`;
+            document.getElementById('totalBalance').textContent = `₹${data.total_balance.toFixed(2)}`;
+        } catch (error) {
+            console.error('Error fetching summary:', error);
+        }
+    }
+
+    async function fetchLedgerEntries(partyId) {
+        const params = new URLSearchParams({
+            party_id: partyId,
+            start_date: startDate.value,
+            end_date: endDate.value
+        });
+
+        try {
+            const response = await fetch(`/api/ledger/transactions?${params}`);
+            const entries = await response.json();
+            
+            ledgerTable.innerHTML = '';
+            
+            entries.forEach(entry => {
+                const row = ledgerTable.insertRow();
+                row.innerHTML = `
+                    <td>${entry.date}</td>
+                    <td>${entry.description}</td>
+                    <td>₹${entry.cash_debit.toFixed(2)}</td>
+                    <td>₹${entry.cash_credit.toFixed(2)}</td>
+                    <td>₹${entry.bill_debit.toFixed(2)}</td>
+                    <td>₹${entry.bill_credit.toFixed(2)}</td>
+                    <td>₹${entry.cash_balance.toFixed(2)}</td>
+                    <td>₹${entry.bill_balance.toFixed(2)}</td>
+                    <td>₹${entry.total_balance.toFixed(2)}</td>
+                `;
+            });
+        } catch (error) {
+            console.error('Error fetching entries:', error);
+        }
+    }
+
+    function updateLedger() {
+        const partyId = partySelect.value;
+        if (partyId) {
+            fetchLedgerSummary(partyId);
+            fetchLedgerEntries(partyId);
+        }
+    }
+
+    partySelect.addEventListener('change', updateLedger);
+    applyFilter.addEventListener('click', updateLedger);
+});
+</script>
+{% endblock %}

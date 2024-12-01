@@ -1,0 +1,311 @@
+{% extends "base.html" %}
+
+{% block title %}Stock Adjustment - Accounting System{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Stock Adjustment</h6>
+                </div>
+                <div class="card-body">
+                    <form id="stockAdjustmentForm" class="needs-validation" novalidate>
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="adjustmentDate" class="form-label">Date</label>
+                                    <input type="date" class="form-control" id="adjustmentDate" required
+                                           value="{{ today.strftime('%Y-%m-%d') }}">
+                                    <div class="invalid-feedback">
+                                        Please select a date.
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="referenceNumber" class="form-label">Reference Number</label>
+                                    <input type="text" class="form-control" id="referenceNumber" required
+                                           value="{{ reference_number }}">
+                                    <div class="invalid-feedback">
+                                        Please provide a reference number.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <div class="card">
+                                    <div class="card-body">
+                                        <div class="table-responsive">
+                                            <table class="table" id="adjustmentTable">
+                                                <thead>
+                                                    <tr>
+                                                        <th style="width: 30%">Item</th>
+                                                        <th>Current Stock</th>
+                                                        <th>Adjustment Type</th>
+                                                        <th>Quantity</th>
+                                                        <th>Reason</th>
+                                                        <th>Actions</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    <tr class="adjustment-row">
+                                                        <td>
+                                                            <select class="form-select item-select" required>
+                                                                <option value="">Select Item</option>
+                                                                {% for item in items %}
+                                                                <option value="{{ item.id }}" 
+                                                                        data-current-stock="{{ item.current_stock }}">
+                                                                    {{ item.name }}
+                                                                </option>
+                                                                {% endfor %}
+                                                            </select>
+                                                        </td>
+                                                        <td>
+                                                            <input type="text" class="form-control current-stock" readonly>
+                                                        </td>
+                                                        <td>
+                                                            <select class="form-select adjustment-type" required>
+                                                                <option value="">Select Type</option>
+                                                                <option value="addition">Addition</option>
+                                                                <option value="reduction">Reduction</option>
+                                                            </select>
+                                                        </td>
+                                                        <td>
+                                                            <input type="number" class="form-control quantity" required min="0" step="0.01">
+                                                        </td>
+                                                        <td>
+                                                            <select class="form-select reason" required>
+                                                                <option value="">Select Reason</option>
+                                                                <option value="physical_count">Physical Count</option>
+                                                                <option value="damage">Damage/Breakage</option>
+                                                                <option value="expiry">Expiry</option>
+                                                                <option value="theft">Theft/Loss</option>
+                                                                <option value="return">Return</option>
+                                                                <option value="other">Other</option>
+                                                            </select>
+                                                        </td>
+                                                        <td>
+                                                            <button type="button" class="btn btn-danger btn-sm remove-row">
+                                                                <i class="bx bx-trash"></i>
+                                                            </button>
+                                                        </td>
+                                                    </tr>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                        
+                                        <div class="mt-3">
+                                            <button type="button" class="btn btn-secondary" id="addRow">
+                                                <i class="bx bx-plus"></i> Add Item
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <div class="mb-3">
+                                    <label for="notes" class="form-label">Notes</label>
+                                    <textarea class="form-control" id="notes" rows="3"></textarea>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-12">
+                                <div class="d-flex justify-content-end">
+                                    <button type="button" class="btn btn-secondary me-2" onclick="history.back()">
+                                        Cancel
+                                    </button>
+                                    <button type="submit" class="btn btn-primary">
+                                        Save Adjustment
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Confirmation Modal -->
+<div class="modal fade" id="confirmationModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirm Stock Adjustment</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to proceed with this stock adjustment?</p>
+                <div class="alert alert-warning">
+                    <i class="bx bx-info-circle"></i>
+                    This action cannot be undone. All adjustments will be recorded in the system.
+                </div>
+                <div id="adjustmentSummary">
+                    <!-- Summary will be populated dynamically -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="confirmAdjustment">Confirm</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('stockAdjustmentForm');
+    const addRowBtn = document.getElementById('addRow');
+    const tbody = document.querySelector('#adjustmentTable tbody');
+    
+    // Add new row
+    addRowBtn.addEventListener('click', function() {
+        const newRow = tbody.children[0].cloneNode(true);
+        newRow.querySelectorAll('input, select').forEach(input => {
+            input.value = '';
+            if (input.classList.contains('current-stock')) {
+                input.readOnly = true;
+            }
+        });
+        tbody.appendChild(newRow);
+        attachRowEventListeners(newRow);
+    });
+    
+    // Attach event listeners to row
+    function attachRowEventListeners(row) {
+        // Item selection
+        row.querySelector('.item-select').addEventListener('change', function() {
+            const option = this.options[this.selectedIndex];
+            const currentStock = option.dataset.currentStock || '0';
+            row.querySelector('.current-stock').value = currentStock;
+        });
+        
+        // Remove row
+        row.querySelector('.remove-row').addEventListener('click', function() {
+            if (tbody.children.length > 1) {
+                row.remove();
+            }
+        });
+        
+        // Quantity validation
+        row.querySelector('.quantity').addEventListener('input', function() {
+            const currentStock = parseFloat(row.querySelector('.current-stock').value) || 0;
+            const quantity = parseFloat(this.value) || 0;
+            const type = row.querySelector('.adjustment-type').value;
+            
+            if (type === 'reduction' && quantity > currentStock) {
+                this.setCustomValidity('Reduction quantity cannot exceed current stock');
+            } else {
+                this.setCustomValidity('');
+            }
+        });
+        
+        // Adjustment type change
+        row.querySelector('.adjustment-type').addEventListener('change', function() {
+            const quantityInput = row.querySelector('.quantity');
+            quantityInput.dispatchEvent(new Event('input'));
+        });
+    }
+    
+    // Attach event listeners to initial row
+    attachRowEventListeners(tbody.children[0]);
+    
+    // Form submission
+    form.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        if (!form.checkValidity()) {
+            e.stopPropagation();
+            form.classList.add('was-validated');
+            return;
+        }
+        
+        // Prepare adjustment data
+        const adjustments = [];
+        tbody.querySelectorAll('.adjustment-row').forEach(row => {
+            const itemId = row.querySelector('.item-select').value;
+            if (itemId) {
+                adjustments.push({
+                    item_id: itemId,
+                    adjustment_type: row.querySelector('.adjustment-type').value,
+                    quantity: parseFloat(row.querySelector('.quantity').value),
+                    reason: row.querySelector('.reason').value
+                });
+            }
+        });
+        
+        // Show confirmation modal with summary
+        const modal = new bootstrap.Modal(document.getElementById('confirmationModal'));
+        const summary = document.getElementById('adjustmentSummary');
+        
+        let summaryHTML = '<div class="table-responsive"><table class="table table-sm">';
+        summaryHTML += '<thead><tr><th>Item</th><th>Type</th><th>Quantity</th><th>Reason</th></tr></thead><tbody>';
+        
+        adjustments.forEach(adj => {
+            const row = tbody.querySelector(`select[value="${adj.item_id}"]`).closest('tr');
+            const itemName = row.querySelector('.item-select option:checked').text;
+            
+            summaryHTML += `
+                <tr>
+                    <td>${itemName}</td>
+                    <td>${adj.adjustment_type}</td>
+                    <td>${adj.quantity}</td>
+                    <td>${adj.reason}</td>
+                </tr>
+            `;
+        });
+        
+        summaryHTML += '</tbody></table></div>';
+        summary.innerHTML = summaryHTML;
+        
+        modal.show();
+        
+        // Handle confirmation
+        document.getElementById('confirmAdjustment').onclick = async function() {
+            modal.hide();
+            showLoading();
+            
+            try {
+                const response = await fetch('/inventory/adjust-stock', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        date: document.getElementById('adjustmentDate').value,
+                        reference_number: document.getElementById('referenceNumber').value,
+                        notes: document.getElementById('notes').value,
+                        adjustments: adjustments
+                    })
+                });
+                
+                if (response.ok) {
+                    showToast('Stock adjustment saved successfully', 'success');
+                    setTimeout(() => window.location.href = '/inventory', 1500);
+                } else {
+                    const error = await response.json();
+                    throw new Error(error.message);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showToast(error.message || 'Error saving stock adjustment', 'danger');
+            } finally {
+                hideLoading();
+            }
+        };
+    });
+});
+</script>
+{% endblock %}

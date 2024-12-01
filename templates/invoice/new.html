@@ -1,0 +1,246 @@
+{% extends "base.html" %}
+
+{% block title %}New Invoice - Accounting System{% endblock %}
+
+{% block extra_css %}
+<style>
+    .item-row { margin-bottom: 15px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <h1 class="h2 mb-4">New Invoice</h1>
+
+    <form id="invoiceForm" class="needs-validation" novalidate>
+        <div class="row">
+            <div class="col-md-6">
+                <div class="mb-3">
+                    <label for="invoiceNumber" class="form-label">Invoice Number</label>
+                    <input type="text" class="form-control" id="invoiceNumber" required>
+                </div>
+                <div class="mb-3">
+                    <label for="party" class="form-label">Party</label>
+                    <select class="form-select" id="party" required>
+                        <option value="">Select Party</option>
+                        {% for party in parties %}
+                        <option value="{{ party.id }}">{{ party.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label for="date" class="form-label">Date</label>
+                    <input type="date" class="form-control" id="date" required>
+                </div>
+                <div class="mb-3">
+                    <label for="type" class="form-label">Type</label>
+                    <select class="form-select" id="type" required>
+                        <option value="sales">Sales</option>
+                        <option value="purchase">Purchase</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <h3 class="h4 mt-4 mb-3">Items</h3>
+        <div id="itemsContainer">
+            <div class="row item-row">
+                <div class="col-md-3">
+                    <select class="form-select item-select" required>
+                        <option value="">Select Item</option>
+                        {% for item in items %}
+                        <option value="{{ item.id }}" 
+                                data-cash-rate="{{ item.cash_rate }}"
+                                data-bill-rate="{{ item.bill_rate }}">
+                            {{ item.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <input type="number" class="form-control quantity" placeholder="Quantity" required>
+                </div>
+                <div class="col-md-2">
+                    <input type="number" class="form-control cash-rate" placeholder="Cash Rate" readonly>
+                </div>
+                <div class="col-md-2">
+                    <input type="number" class="form-control bill-rate" placeholder="Bill Rate" readonly>
+                </div>
+                <div class="col-md-2">
+                    <input type="number" class="form-control amount" placeholder="Total Amount" readonly>
+                </div>
+                <div class="col-md-1">
+                    <button type="button" class="btn btn-danger remove-item">×</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mt-3">
+            <div class="col-12">
+                <button type="button" class="btn btn-secondary" id="addItem">Add Item</button>
+            </div>
+        </div>
+
+        <div class="row mt-4">
+            <div class="col-md-6 offset-md-6">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Total Cash Amount:</span>
+                            <span id="totalCashAmount">₹0.00</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Total Bill Amount:</span>
+                            <span id="totalBillAmount">₹0.00</span>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <strong>Grand Total:</strong>
+                            <strong id="grandTotal">₹0.00</strong>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mt-4">
+            <div class="col-12">
+                <button type="submit" class="btn btn-primary">Save Invoice</button>
+                <a href="{{ url_for('invoice.list_invoices') }}" class="btn btn-secondary">Cancel</a>
+            </div>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const itemsContainer = document.getElementById('itemsContainer');
+    const addItemBtn = document.getElementById('addItem');
+    const form = document.getElementById('invoiceForm');
+
+    // Add new item row
+    addItemBtn.addEventListener('click', function() {
+        const newRow = itemsContainer.children[0].cloneNode(true);
+        newRow.querySelectorAll('input').forEach(input => input.value = '');
+        newRow.querySelector('select').value = '';
+        itemsContainer.appendChild(newRow);
+        attachEventListeners(newRow);
+    });
+
+    // Remove item row
+    function attachEventListeners(row) {
+        row.querySelector('.remove-item').addEventListener('click', function() {
+            if (itemsContainer.children.length > 1) {
+                row.remove();
+                calculateTotals();
+            }
+        });
+
+        row.querySelector('.item-select').addEventListener('change', function() {
+            const option = this.options[this.selectedIndex];
+            const cashRate = option.dataset.cashRate || 0;
+            const billRate = option.dataset.billRate || 0;
+            
+            row.querySelector('.cash-rate').value = cashRate;
+            row.querySelector('.bill-rate').value = billRate;
+            calculateRowAmount(row);
+        });
+
+        row.querySelector('.quantity').addEventListener('input', function() {
+            calculateRowAmount(row);
+        });
+    }
+
+    // Calculate row amount
+    function calculateRowAmount(row) {
+        const quantity = parseFloat(row.querySelector('.quantity').value) || 0;
+        const cashRate = parseFloat(row.querySelector('.cash-rate').value) || 0;
+        const billRate = parseFloat(row.querySelector('.bill-rate').value) || 0;
+        
+        const totalAmount = quantity * (cashRate + billRate);
+        row.querySelector('.amount').value = totalAmount.toFixed(2);
+        
+        calculateTotals();
+    }
+
+    // Calculate totals
+    function calculateTotals() {
+        let totalCash = 0;
+        let totalBill = 0;
+
+        itemsContainer.querySelectorAll('.item-row').forEach(row => {
+            const quantity = parseFloat(row.querySelector('.quantity').value) || 0;
+            const cashRate = parseFloat(row.querySelector('.cash-rate').value) || 0;
+            const billRate = parseFloat(row.querySelector('.bill-rate').value) || 0;
+
+            totalCash += quantity * cashRate;
+            totalBill += quantity * billRate;
+        });
+
+        document.getElementById('totalCashAmount').textContent = `₹${totalCash.toFixed(2)}`;
+        document.getElementById('totalBillAmount').textContent = `₹${totalBill.toFixed(2)}`;
+        document.getElementById('grandTotal').textContent = `₹${(totalCash + totalBill).toFixed(2)}`;
+    }
+
+    // Form submission
+    form.addEventListener('submit', async function(e) {
+        e.preventDefault();
+
+        if (!form.checkValidity()) {
+            e.stopPropagation();
+            form.classList.add('was-validated');
+            return;
+        }
+
+        const items = [];
+        itemsContainer.querySelectorAll('.item-row').forEach(row => {
+            const itemId = row.querySelector('.item-select').value;
+            if (itemId) {
+                items.push({
+                    item_id: itemId,
+                    quantity: parseFloat(row.querySelector('.quantity').value),
+                    cash_rate: parseFloat(row.querySelector('.cash-rate').value),
+                    bill_rate: parseFloat(row.querySelector('.bill-rate').value),
+                    cash_amount: parseFloat(row.querySelector('.quantity').value) * parseFloat(row.querySelector('.cash-rate').value),
+                    bill_amount: parseFloat(row.querySelector('.quantity').value) * parseFloat(row.querySelector('.bill-rate').value)
+                });
+            }
+        });
+
+        const data = {
+            invoice_number: document.getElementById('invoiceNumber').value,
+            party_id: document.getElementById('party').value,
+            date: document.getElementById('date').value,
+            type: document.getElementById('type').value,
+            items: items,
+            total_cash_amount: parseFloat(document.getElementById('totalCashAmount').textContent.replace('₹', '')),
+            total_bill_amount: parseFloat(document.getElementById('totalBillAmount').textContent.replace('₹', ''))
+        };
+
+        try {
+            const response = await fetch('/invoice/new', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(data)
+            });
+
+            if (response.ok) {
+                const result = await response.json();
+                window.location.href = `/invoice/${result.invoice_id}`;
+            } else {
+                alert('Error creating invoice');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Error creating invoice');
+        }
+    });
+
+    // Initialize event listeners for first row
+    attachEventListeners(itemsContainer.children[0]);
+});
+</script>
+{% endblock %}

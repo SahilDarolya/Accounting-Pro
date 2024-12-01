@@ -1,0 +1,193 @@
+{% extends "base.html" %}
+
+{% block title %}Party Management - Accounting System{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h2">Party Management</h1>
+        <a href="{{ url_for('party.add_party') }}" class="btn btn-primary">
+            <i class="bx bx-plus"></i> Add New Party
+        </a>
+    </div>
+
+    <!-- Party List -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">Parties</h6>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered" id="partyTable">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Contact</th>
+                            <th>Email</th>
+                            <th>GST Number</th>
+                            <th>Total Business</th>
+                            <th>Total Invoices</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for party, total_business, total_invoices in parties %}
+                        <tr>
+                            <td>{{ party.name }}</td>
+                            <td>{{ party.contact }}</td>
+                            <td>{{ party.email }}</td>
+                            <td>{{ party.gst_number }}</td>
+                            <td>₹{{ "%.2f"|format(total_business or 0) }}</td>
+                            <td>{{ total_invoices or 0 }}</td>
+                            <td>
+                                <div class="btn-group">
+                                    <a href="{{ url_for('party.edit_party', id=party.id) }}" class="btn btn-sm btn-primary">
+                                        <i class="bx bxs-edit"></i>
+                                    </a>
+                                    <button class="btn btn-sm btn-info" onclick="viewSummary({{ party.id }})">
+                                        <i class="bx bx-info-circle"></i>
+                                    </button>
+                                    <a href="{{ url_for('ledger.party_ledger', party_id=party.id) }}" class="btn btn-sm btn-secondary">
+                                        <i class="bx bx-book"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Party Summary Modal -->
+<div class="modal fade" id="summaryModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Party Summary</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row mb-4">
+                    <div class="col-md-4">
+                        <div class="card bg-primary text-white">
+                            <div class="card-body">
+                                <h6 class="card-title">Cash Balance</h6>
+                                <h4 id="cashBalance">₹0.00</h4>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card bg-success text-white">
+                            <div class="card-body">
+                                <h6 class="card-title">Bill Balance</h6>
+                                <h4 id="billBalance">₹0.00</h4>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card bg-info text-white">
+                            <div class="card-body">
+                                <h6 class="card-title">Total Balance</h6>
+                                <h4 id="totalBalance">₹0.00</h4>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Recent Transactions</h6>
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Invoice</th>
+                                    <th>Type</th>
+                                    <th>Amount</th>
+                                </tr>
+                            </thead>
+                            <tbody id="transactionsTableBody">
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Statistics</h6>
+                        <ul class="list-group">
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                Total Invoices
+                                <span id="totalInvoices" class="badge bg-primary rounded-pill">0</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                Total Sales
+                                <span id="totalSales">₹0.00</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                Total Purchases
+                                <span id="totalPurchases">₹0.00</span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize DataTable
+    $('#partyTable').DataTable({
+        order: [[0, 'asc']],
+        pageLength: 25
+    });
+});
+
+async function viewSummary(partyId) {
+    try {
+        // Fetch summary data
+        const summaryResponse = await fetch(`/api/party/${partyId}/summary`);
+        const summary = await summaryResponse.json();
+        
+        // Update summary cards
+        document.getElementById('cashBalance').textContent = `₹${summary.cash_balance.toFixed(2)}`;
+        document.getElementById('billBalance').textContent = `₹${summary.bill_balance.toFixed(2)}`;
+        document.getElementById('totalBalance').textContent = `₹${summary.total_balance.toFixed(2)}`;
+        
+        // Update statistics
+        document.getElementById('totalInvoices').textContent = summary.total_invoices;
+        document.getElementById('totalSales').textContent = `₹${summary.total_sales.toFixed(2)}`;
+        document.getElementById('totalPurchases').textContent = `₹${summary.total_purchases.toFixed(2)}`;
+        
+        // Fetch transactions
+        const transactionsResponse = await fetch(`/api/party/${partyId}/transactions`);
+        const transactions = await transactionsResponse.json();
+        
+        // Update transactions table
+        const tbody = document.getElementById('transactionsTableBody');
+        tbody.innerHTML = '';
+        
+        transactions.forEach(t => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${t.date}</td>
+                <td>${t.invoice_number}</td>
+                <td>${t.type}</td>
+                <td>₹${t.total_amount.toFixed(2)}</td>
+            `;
+            tbody.appendChild(row);
+        });
+        
+        // Show modal
+        new bootstrap.Modal(document.getElementById('summaryModal')).show();
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Error fetching party summary');
+    }
+}
+</script>
+{% endblock %}

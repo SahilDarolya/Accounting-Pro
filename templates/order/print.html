@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Order #{{ order.order_number }} - Print</title>
+    <style>
+        @media print {
+            @page {
+                margin: 0.5cm;
+            }
+            body {
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+        }
+        
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .company-name {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .company-details {
+            font-size: 14px;
+            color: #666;
+        }
+        
+        .order-info {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 30px;
+        }
+        
+        .order-details, .party-details {
+            flex: 1;
+        }
+        
+        .section-title {
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #333;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 30px;
+        }
+        
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        
+        th {
+            background-color: #f8f9fa;
+            font-weight: bold;
+        }
+        
+        .totals {
+            margin-left: auto;
+            width: 300px;
+        }
+        
+        .total-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 5px 0;
+        }
+        
+        .grand-total {
+            font-weight: bold;
+            border-top: 2px solid #333;
+            margin-top: 5px;
+            padding-top: 5px;
+        }
+        
+        .footer {
+            margin-top: 50px;
+            text-align: center;
+            font-size: 12px;
+            color: #666;
+        }
+        
+        .signature {
+            margin-top: 50px;
+            display: flex;
+            justify-content: space-between;
+        }
+        
+        .signature-line {
+            width: 200px;
+            text-align: center;
+        }
+        
+        .signature-line hr {
+            margin-bottom: 5px;
+        }
+        
+        @media print {
+            .no-print {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="company-name">{{ company_name }}</div>
+        <div class="company-details">
+            {{ company_address }}<br>
+            Phone: {{ company_phone }}<br>
+            Email: {{ company_email }}<br>
+            {% if company_gst %}GST No: {{ company_gst }}{% endif %}
+        </div>
+    </div>
+
+    <div class="order-info">
+        <div class="order-details">
+            <div class="section-title">Order Details:</div>
+            <div>Order Number: {{ order.order_number }}</div>
+            <div>Date: {{ order.created_at.strftime('%Y-%m-%d') }}</div>
+            <div>Status: {{ order.status|title }}</div>
+        </div>
+        <div class="party-details">
+            <div class="section-title">Party Details:</div>
+            <div>{{ order.party.name }}</div>
+            <div>{{ order.party.address }}</div>
+            <div>Contact: {{ order.party.contact }}</div>
+            {% if order.party.gst_number %}
+            <div>GST No: {{ order.party.gst_number }}</div>
+            {% endif %}
+        </div>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Sr.</th>
+                <th>Item</th>
+                <th>Quantity</th>
+                <th>Cash Rate</th>
+                <th>Bill Rate</th>
+                <th>Cash Amount</th>
+                <th>Bill Amount</th>
+                <th>Total Amount</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in order.items %}
+            <tr>
+                <td>{{ loop.index }}</td>
+                <td>{{ item.item.name }}</td>
+                <td>{{ item.quantity }}</td>
+                <td>₹{{ "%.2f"|format(item.cash_rate) }}</td>
+                <td>₹{{ "%.2f"|format(item.bill_rate) }}</td>
+                <td>₹{{ "%.2f"|format(item.cash_amount) }}</td>
+                <td>₹{{ "%.2f"|format(item.bill_amount) }}</td>
+                <td>₹{{ "%.2f"|format(item.cash_amount + item.bill_amount) }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div class="totals">
+        <div class="total-row">
+            <span>Total Cash Amount:</span>
+            <span>₹{{ "%.2f"|format(order.total_cash_amount) }}</span>
+        </div>
+        <div class="total-row">
+            <span>Total Bill Amount:</span>
+            <span>₹{{ "%.2f"|format(order.total_bill_amount) }}</span>
+        </div>
+        <div class="total-row grand-total">
+            <span>Grand Total:</span>
+            <span>₹{{ "%.2f"|format(order.total_amount) }}</span>
+        </div>
+    </div>
+
+    {% if order.notes %}
+    <div style="margin-top: 20px;">
+        <div class="section-title">Notes:</div>
+        <div>{{ order.notes }}</div>
+    </div>
+    {% endif %}
+
+    <div class="signature">
+        <div class="signature-line">
+            <hr>
+            <div>Authorized Signature</div>
+        </div>
+        <div class="signature-line">
+            <hr>
+            <div>Party Signature</div>
+        </div>
+    </div>
+
+    <div class="footer">
+        <p>This is a computer generated order. No signature is required.</p>
+    </div>
+
+    <div class="no-print" style="margin-top: 20px; text-align: center;">
+        <button onclick="window.print()" style="padding: 10px 20px; font-size: 16px; cursor: pointer;">
+            Print Order
+        </button>
+    </div>
+</body>
+</html>

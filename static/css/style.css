@@ -1,0 +1,127 @@
+/* Global Styles */
+body {
+    background-color: #f8f9fc;
+}
+
+.sidebar {
+    min-height: 100vh;
+    box-shadow: 0 .15rem 1.75rem 0 rgba(58,59,69,.15);
+}
+
+.sidebar .nav-link {
+    color: #4e73df;
+    padding: 1rem;
+    display: flex;
+    align-items: center;
+}
+
+.sidebar .nav-link i {
+    margin-right: 0.5rem;
+}
+
+.sidebar .nav-link:hover {
+    background-color: #eaecf4;
+}
+
+/* Card Styles */
+.card {
+    box-shadow: 0 .15rem 1.75rem 0 rgba(58,59,69,.15);
+}
+
+.card-header {
+    background-color: #f8f9fc;
+    border-bottom: 1px solid #e3e6f0;
+}
+
+/* Table Styles */
+.table th {
+    background-color: #f8f9fc;
+    border-bottom: 2px solid #e3e6f0;
+}
+
+.table-bordered td, .table-bordered th {
+    border: 1px solid #e3e6f0;
+}
+
+/* Form Styles */
+.form-control:focus, .form-select:focus {
+    border-color: #4e73df;
+    box-shadow: 0 0 0 0.25rem rgba(78,115,223,.25);
+}
+
+.btn-primary {
+    background-color: #4e73df;
+    border-color: #4e73df;
+}
+
+.btn-primary:hover {
+    background-color: #2e59d9;
+    border-color: #2653d4;
+}
+
+/* Dashboard Cards */
+.border-left-primary {
+    border-left: .25rem solid #4e73df!important;
+}
+
+.border-left-success {
+    border-left: .25rem solid #1cc88a!important;
+}
+
+.border-left-info {
+    border-left: .25rem solid #36b9cc!important;
+}
+
+.border-left-warning {
+    border-left: .25rem solid #f6c23e!important;
+}
+
+/* Status Badges */
+.badge {
+    padding: 0.5em 0.75em;
+}
+
+/* Modal Styles */
+.modal-header {
+    background-color: #f8f9fc;
+    border-bottom: 1px solid #e3e6f0;
+}
+
+.modal-footer {
+    background-color: #f8f9fc;
+    border-top: 1px solid #e3e6f0;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+    .sidebar {
+        min-height: auto;
+    }
+    
+    .card-body {
+        padding: 1rem;
+    }
+    
+    .table-responsive {
+        margin-bottom: 1rem;
+    }
+}

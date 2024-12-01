@@ -1,0 +1,141 @@
+{% extends "base.html" %}
+
+{% block title %}Add New Item - Accounting System{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row">
+        <div class="col-12 col-lg-8 mx-auto">
+            <div class="card shadow">
+                <div class="card-header">
+                    <h6 class="m-0 font-weight-bold text-primary">Add New Item</h6>
+                </div>
+                <div class="card-body">
+                    <form id="addItemForm" class="needs-validation" novalidate>
+                        <div class="mb-3">
+                            <label for="name" class="form-label">Item Name</label>
+                            <input type="text" class="form-control" id="name" required>
+                            <div class="invalid-feedback">
+                                Please provide an item name.
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="description" class="form-label">Description</label>
+                            <textarea class="form-control" id="description" rows="3"></textarea>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="cashRate" class="form-label">Cash Rate</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">₹</span>
+                                        <input type="number" class="form-control" id="cashRate" step="0.01" required>
+                                    </div>
+                                    <div class="invalid-feedback">
+                                        Please provide a cash rate.
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="billRate" class="form-label">Bill Rate</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">₹</span>
+                                        <input type="number" class="form-control" id="billRate" step="0.01" required>
+                                    </div>
+                                    <div class="invalid-feedback">
+                                        Please provide a bill rate.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="unit" class="form-label">Unit</label>
+                                    <select class="form-select" id="unit" required>
+                                        <option value="">Select Unit</option>
+                                        <option value="pcs">Pieces</option>
+                                        <option value="kg">Kilograms</option>
+                                        <option value="g">Grams</option>
+                                        <option value="l">Liters</option>
+                                        <option value="m">Meters</option>
+                                        <option value="box">Box</option>
+                                    </select>
+                                    <div class="invalid-feedback">
+                                        Please select a unit.
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="initialQuantity" class="form-label">Initial Quantity</label>
+                                    <input type="number" class="form-control" id="initialQuantity" step="0.01" required>
+                                    <div class="invalid-feedback">
+                                        Please provide initial quantity.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <a href="{{ url_for('inventory.index') }}" class="btn btn-secondary me-md-2">Cancel</a>
+                            <button type="submit" class="btn btn-primary">Add Item</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('addItemForm');
+    
+    form.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        if (!form.checkValidity()) {
+            e.stopPropagation();
+            form.classList.add('was-validated');
+            return;
+        }
+        
+        const data = {
+            name: document.getElementById('name').value,
+            description: document.getElementById('description').value,
+            cash_rate: parseFloat(document.getElementById('cashRate').value),
+            bill_rate: parseFloat(document.getElementById('billRate').value),
+            unit: document.getElementById('unit').value,
+            initial_quantity: parseFloat(document.getElementById('initialQuantity').value)
+        };
+        
+        try {
+            const response = await fetch('/inventory/add', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(data)
+            });
+            
+            if (response.ok) {
+                window.location.href = "{{ url_for('inventory.index') }}";
+            } else {
+                const error = await response.json();
+                alert(error.message || 'Error adding item');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Error adding item');
+        }
+    });
+});
+</script>
+{% endblock %}
